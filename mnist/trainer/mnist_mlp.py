@@ -24,12 +24,7 @@ num_classes = 10
 epochs = 1
 
 # Create a function to allow for different training data and other options
-def train_model(train_file='data/mnist.pkl',
-                job_dir='./tmp/mnist_mlp', **args):
-    # set the logging path for ML Engine logging to Storage bucket
-    logs_path = job_dir + '/logs/' + datetime.now().isoformat()
-    print('Using logs_path located at {}'.format(logs_path))
-
+def train_model(train_file='data/mnist.pkl', **args):
     # Reading in the pickle file. Pickle works differently with Python 2 vs 3
     f = file_io.FileIO(train_file, mode='r')
     if sys.version_info < (3,):
@@ -73,6 +68,9 @@ def train_model(train_file='data/mnist.pkl',
                         batch_size=batch_size,
                         epochs=epochs,
                         verbose=1,
+                        callbacks = [
+                            keras.callbacks.TensorBoard(log_dir = './logs/' )
+                        ],
                         validation_data=(x_test, y_test))
 
     score = model.evaluate(x_test, y_test, verbose=0)
@@ -84,7 +82,7 @@ def train_model(train_file='data/mnist.pkl',
 
     # Save the model to the Cloud Storage bucket's jobs directory
     with file_io.FileIO('model.h5', mode='r') as input_f:
-        with file_io.FileIO(job_dir + '/model.h5', mode='w+') as output_f:
+        with file_io.FileIO('./models' + '/model.h5', mode='w+') as output_f:
             output_f.write(input_f.read())
 
 
@@ -94,9 +92,6 @@ if __name__ == '__main__':
     parser.add_argument(
       '--train-file',
       help='Cloud Storage bucket or local path to training data')
-    parser.add_argument(
-      '--job-dir',
-      help='Cloud storage bucket to export the model and store temp files')
     args = parser.parse_args()
     arguments = args.__dict__
     train_model(**arguments)
